@@ -1,0 +1,28 @@
+/* Style the buttons to be positioned at the bottom-right of the lightning-card */
+:host {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Reduce the padding at the bottom of the card body */
+.card-body {
+    padding-bottom: 1rem; /* Reduced space to minimize gap between content and buttons */
+}
+
+/* Position the buttons at the bottom-right corner */
+.button-container {
+    display: flex;
+    justify-content: flex-end; /* Align buttons to the right */
+    margin-top: auto; /* Pushes the button container to the bottom */
+    padding: 0.1rem; /* Reduced padding around buttons */
+    }
+
+.slds-button_inline {
+    margin-right: 0.1rem; /* Space between buttons */
+}
+
+.slds-button_inline:last-child {
+    margin-right: 0; /* No extra margin on the last button */
+}
+

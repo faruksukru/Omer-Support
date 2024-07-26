@@ -1,0 +1,41 @@
+<template>
+    <lightning-card title={cardTitle} icon-name="standard:opportunity">
+        <!-- Card Body with Opportunity Info -->
+        <div class="card-body">
+            <template if:true={opportunity}>
+                <div class="slds-grid slds-wrap">
+                    <div class="slds-col slds-size_1-of-3">
+                        <!-- Use lightning-formatted-number for proper currency formatting -->
+                        Amount <br> <lightning-formatted-number value={opportunity.Amount} format-style="currency" currency-code="USD" class="amount-text">                   
+                        </lightning-formatted-number>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        Stage <br><lightning-formatted-text value={opportunity.StageName} label="Stage"></lightning-formatted-text>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        Close Date <br><lightning-formatted-date-time value={opportunity.CloseDate} year="numeric" month="numeric" day="numeric" label="Close Date"></lightning-formatted-date-time>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        Expected Revenue <br> <lightning-formatted-number value={opportunity.ExpectedRevenue} label="Amount" format-style="currency"></lightning-formatted-number>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        Opportunity Owner Name <br><lightning-formatted-text value={opportunity.Owner.Name} label="Owner"></lightning-formatted-text>
+                    </div>
+                </div>
+            </template>
+            <template if:true={error}>
+                <div class="slds-text-color_error">
+                    {error}
+                </div>
+            </template>
+        </div>
+        <!-- Buttons at the bottom-right -->
+        <div class="button-container">
+            <lightning-button variant="neutral" label="Cancel" onclick={handleCancel} class="slds-button_inline"></lightning-button>
+            <lightning-button variant="brand" label="Submit" onclick={handleSubmit} class="slds-button_inline"></lightning-button>
+        </div>
+    </lightning-card>
+</template>
+
+
+
