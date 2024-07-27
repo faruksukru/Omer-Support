@@ -1,4 +1,4 @@
-public with sharing class OpportunityController {
+public with sharing class OpportunityControllerV2 {
     @AuraEnabled(cacheable=true)
     public static Opportunity getOpportunityInfo(Id opportunityId) {
         try {
@@ -27,5 +27,17 @@ public with sharing class OpportunityController {
             throw new AuraHandledException('Opportunity not found.');
         }
     }
-}
 
+    @AuraEnabled(cacheable=true)
+    public static List<Account> getFilteredAccounts(Decimal creditScore) {
+        try {
+            return [
+                SELECT Id, Name, Minumum_Credit_Score__c, Minumum_Monthly_Deposit_Amount__c, Restricted_Industries__c
+                FROM Account
+                WHERE Minumum_Credit_Score__c <= :creditScore
+            ];
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+}

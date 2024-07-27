@@ -15,18 +15,5 @@
     display: flex;
     justify-content: flex-end; /* Align buttons to the right */
     margin-top: auto; /* Pushes the button container to the bottom */
-    padding: 0.1rem; /* Reduced padding around buttons */
-}
-
-.slds-button_inline {
-    margin-right: 0.1rem; /* Space between buttons */
-}
-
-.slds-button_inline:last-child {
-    margin-right: 0; /* No extra margin on the last button */
-}
-
-/* Style for tab content */
-.tab-content {
-    padding: 1rem; /* Add padding inside tab content */
+    padding: 
 }
