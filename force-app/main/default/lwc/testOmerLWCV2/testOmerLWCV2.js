@@ -3,6 +3,7 @@ import { CurrentPageReference, NavigationMixin } from 'lightning/navigation';
 import getOpportunityInfo from '@salesforce/apex/OpportunityControllerV2.getOpportunityInfo';
 import getFilteredAccounts from '@salesforce/apex/OpportunityControllerV2.getFilteredAccounts';
 import sendEmail from '@salesforce/apex/OpportunityControllerV2.sendEmail';
+import updateOpportunityStage from '@salesforce/apex/OpportunityControllerV2.updateOpportunityStage';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 const COLUMNS = [
@@ -67,7 +68,13 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     }
 
     handleSubmit() {
-        sendEmail({ opportunityId: this.recordId })
+        // Update opportunity stage to 'Underwriting'
+        updateOpportunityStage({ opportunityId: this.recordId, newStage: 'Underwriting' })
+            .then(() => {
+                this.showToast('Success', 'Opportunity stage updated to Underwriting', 'success');
+                // Send email after updating the stage
+                return sendEmail({ opportunityId: this.recordId });
+            })
             .then(() => {
                 this.showToast('Success', 'Email sent successfully', 'success');
             })
@@ -75,6 +82,7 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
                 this.showToast('Error', error.body.message, 'error');
             });
     }
+    
 
     showToast(title, message, variant) {
         const event = new ShowToastEvent({

@@ -44,4 +44,19 @@ public with sharing class OpportunityControllerV2 {
             throw new AuraHandledException(e.getMessage());
         }
     }
+
+    @AuraEnabled
+    public static void updateOpportunityStage(Id opportunityId, String newStage) {
+        try {
+            Opportunity opp = [SELECT Id, StageName FROM Opportunity WHERE Id = :opportunityId LIMIT 1];
+            if (opp != null) {
+                opp.StageName = newStage;
+                update opp;
+            } else {
+                throw new AuraHandledException('Opportunity not found.');
+            }
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
 }
