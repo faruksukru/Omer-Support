@@ -5,6 +5,10 @@
             <template if:true={opportunity}>
                 <div class="slds-grid slds-wrap">
                     <div class="slds-col slds-size_1-of-3">
+                        Credit Score <br>
+                        <lightning-formatted-number value={opportunity.Credit_Score__c} format-style="decimal" class="amount-text"></lightning-formatted-number>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
                         Amount <br> 
                         <lightning-formatted-number value={opportunity.Amount} format-style="currency" currency-code="USD" class="amount-text"></lightning-formatted-number>
                     </div>
@@ -23,10 +27,6 @@
                     <div class="slds-col slds-size_1-of-3">
                         Opportunity Owner Name <br>
                         <lightning-formatted-text value={opportunity.Owner.Name} label="Owner"></lightning-formatted-text>
-                    </div>
-                    <div class="slds-col slds-size_1-of-3">
-                        Credit Score <br>
-                        <lightning-formatted-number value={opportunity.Credit_Score__c} format-style="decimal" class="amount-text"></lightning-formatted-number>
                     </div>
                 </div>
             </template>

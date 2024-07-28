@@ -31,10 +31,14 @@ public with sharing class OpportunityControllerV2 {
     @AuraEnabled(cacheable=true)
     public static List<Account> getFilteredAccounts(Decimal creditScore) {
         try {
+            // Get the record type ID for the 'Lenders' record type
+            Id lendersRecordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Lenders').getRecordTypeId();
+
             return [
                 SELECT Id, Name, Minumum_Credit_Score__c, Minumum_Monthly_Deposit_Amount__c, Restricted_Industries__c
                 FROM Account
                 WHERE Minumum_Credit_Score__c <= :creditScore
+                AND RecordTypeId = :lendersRecordTypeId
             ];
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
