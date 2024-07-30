@@ -15,5 +15,11 @@
     display: flex;
     justify-content: flex-end; /* Align buttons to the right */
     margin-top: auto; /* Pushes the button container to the bottom */
-    padding: 
 }
+
+/* Style for half-width combobox */
+.half-width {
+    width: 25%;
+    margin-left: 0.5rem;
+}
+

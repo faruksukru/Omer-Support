@@ -1,7 +1,8 @@
+// JavaScript
 import { LightningElement, api, wire, track } from 'lwc';
 import { CurrentPageReference, NavigationMixin } from 'lightning/navigation';
 import getOpportunityInfo from '@salesforce/apex/OpportunityControllerV2.getOpportunityInfo';
-import getFilteredAccounts from '@salesforce/apex/OpportunityControllerV2.getFilteredAccounts';
+import getFilteredAccounts from '@salesforce/apex/OpportunityControllerV2.getAllLenders';
 import sendEmail from '@salesforce/apex/OpportunityControllerV2.sendEmail';
 import updateOpportunityStage from '@salesforce/apex/OpportunityControllerV2.updateOpportunityStage';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
@@ -16,11 +17,21 @@ const COLUMNS = [
 export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     @api recordId;
     @track opportunity;
-    @track accounts;
+    @track accounts = [];
+    @track filteredAccounts = [];
     @track error;
     cardTitle = 'Opportunity'; // Default title
+    selectedFilter = 'Qualified'; // Default filter value
 
     columns = COLUMNS;
+
+    // Filter options for the combobox
+    filterOptions = [
+        { label: 'Qualified', value: 'Qualified' },
+        { label: 'Not Qualified', value: 'Not Qualified' },
+        { label: 'API Lenders', value: 'API Lenders' },
+        { label: 'All', value: 'All' }
+    ];
 
     @wire(CurrentPageReference)
     currentPageReference;
@@ -30,9 +41,7 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
         if (data) {
             this.opportunity = data;
             this.cardTitle = data.Name; // Set the card title to the opportunity name
-
-            // Fetch accounts based on credit score
-            this.fetchAccounts(data.Credit_Score__c);
+            this.fetchAccounts(); // Fetch all accounts initially
         } else if (error) {
             this.error = error.body.message;
         }
@@ -42,18 +51,49 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
         this.recordId = this.currentPageReference.state.c__recordId;
     }
 
-    fetchAccounts(creditScore) {
-        getFilteredAccounts({ creditScore })
+    fetchAccounts() {
+        getFilteredAccounts()
             .then(data => {
-                // Add a URL field for account links
                 this.accounts = data.map(acc => ({
                     ...acc,
                     recordLink: `/lightning/r/Account/${acc.Id}/view`
                 }));
+                this.applyFilter(); // Apply the default filter
             })
             .catch(error => {
                 this.error = error.body.message;
             });
+    }
+
+    applyFilter() {
+        if (this.selectedFilter === 'All') {
+            this.filteredAccounts = this.accounts;
+        } else if (this.selectedFilter === 'Qualified') {
+            this.filteredAccounts = this.accounts.filter(account => {
+                return this.opportunity.Credit_Score__c >= account.Minumum_Credit_Score__c &&
+                       this.opportunity.Amount >= account.Minumum_Monthly_Deposit_Amount__c &&
+                       !account.Restricted_Industries__c.includes(this.opportunity.Industry);
+            });
+        } else if (this.selectedFilter === 'Not Qualified') {
+            this.filteredAccounts = this.accounts.filter(account => {
+                return !(this.opportunity.Credit_Score__c >= account.Minumum_Credit_Score__c &&
+                         this.opportunity.Amount >= account.Minumum_Monthly_Deposit_Amount__c &&
+                         !account.Restricted_Industries__c.includes(this.opportunity.Industry));
+            });
+        } /*else if (this.selectedFilter === 'API Lenders') {
+            // Assuming 'API Lenders' requires specific filtering; adjust as needed
+            this.filteredAccounts = this.accounts.filter(account => {
+                // Replace with actual API Lenders filtering logic if needed
+                return account.RecordType.DeveloperName === 'API_Lenders';
+            });
+        }*/ else {
+            this.filteredAccounts = [];
+        }
+    }
+
+    handleFilterChange(event) {
+        this.selectedFilter = event.detail.value;
+        this.applyFilter(); // Apply the filter when changed
     }
 
     handleCancel() {
@@ -68,11 +108,9 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     }
 
     handleSubmit() {
-        // Update opportunity stage to 'Underwriting'
         updateOpportunityStage({ opportunityId: this.recordId, newStage: 'Underwriting' })
             .then(() => {
                 this.showToast('Success', 'Opportunity stage updated to Underwriting', 'success');
-                // Send email after updating the stage
                 return sendEmail({ opportunityId: this.recordId });
             })
             .then(() => {
@@ -82,7 +120,6 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
                 this.showToast('Error', error.body.message, 'error');
             });
     }
-    
 
     showToast(title, message, variant) {
         const event = new ShowToastEvent({
