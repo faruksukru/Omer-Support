@@ -46,24 +46,27 @@
         <!-- Tabs for Lenders and Files -->
         <lightning-tabset>
             <lightning-tab label="Lenders" id="lendersTab">
-                 <!-- Combobox for filtering -->
-                 <lightning-combobox
-                 name="filter"
-                 label="Filter"
-                 value={selectedFilter}
-                 placeholder="Select a filter"
-                 options={filterOptions}
-                 onchange={handleFilterChange}
-                 class="half-width"
-             ></lightning-combobox>
+                <!-- Combobox for filtering -->
+                <lightning-combobox
+                    name="filter"
+                    label="Filter"
+                    value={selectedFilter}
+                    placeholder="Select a filter"
+                    options={filterOptions}
+                    onchange={handleFilterChange}
+                    class="half-width"
+                ></lightning-combobox>
                 <!-- Content for Lenders tab -->
                 <div class="tab-content">
                     <lightning-datatable
                         key-field="Id"
                         data={filteredAccounts}
                         columns={columns}
-                        onrowaction={handleRowAction}
-                    >
+                        onrowselection={handleRowSelection}
+                        draft-values={draftValues}
+                        wrap-text-max-lines="3"
+                        min-column-width="100"
+                        >
                     </lightning-datatable>
                 </div>
             </lightning-tab>

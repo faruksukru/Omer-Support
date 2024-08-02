@@ -1,4 +1,3 @@
-// JavaScript
 import { LightningElement, api, wire, track } from 'lwc';
 import { CurrentPageReference, NavigationMixin } from 'lightning/navigation';
 import getOpportunityInfo from '@salesforce/apex/OpportunityControllerV2.getOpportunityInfo';
@@ -9,9 +8,21 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 const COLUMNS = [
     { label: 'Name', fieldName: 'recordLink', type: 'url', typeAttributes: { label: { fieldName: 'Name' }, target: '_self' } },
-    { label: 'Minumum Credit Score', fieldName: 'Minumum_Credit_Score__c', type: 'number' },
+    { label: 'Minumum Credit Score',  fieldName: 'Minumum_Credit_Score__c', type: 'number' },
     { label: 'Minumum Monthly Deposit Amount', fieldName: 'Minumum_Monthly_Deposit_Amount__c', type: 'currency' },
-    { label: 'Restricted Industries', fieldName: 'Restricted_Industries__c', type: 'text' }
+    { label: 'Restricted Industries', wrapText:true, fieldName: 'Restricted_Industries__c', type: 'text' },
+    { label: 'Column 1', fieldName: 'col1', type: 'text' },
+    { label: 'Column 2', fieldName: 'col2', type: 'text' },
+    { label: 'Column 3', fieldName: 'col3', type: 'text' },
+    { label: 'Column 4', fieldName: 'col4', type: 'text' },
+    { label: 'Column 5', fieldName: 'col5', type: 'text' },
+    { label: 'Column 6', fieldName: 'col6', type: 'text' },
+    {
+        label: 'Submission Notes',
+        fieldName: 'submissionNotes',
+        type: 'text',
+        editable: true
+    }
 ];
 
 export default class OpportunityInfo extends NavigationMixin(LightningElement) {
@@ -20,6 +31,8 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     @track accounts = [];
     @track filteredAccounts = [];
     @track error;
+    @track draftValues = [];
+    @track selectedAccounts = [];
     cardTitle = 'Opportunity'; // Default title
     selectedFilter = 'Qualified'; // Default filter value
 
@@ -56,7 +69,9 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
             .then(data => {
                 this.accounts = data.map(acc => ({
                     ...acc,
-                    recordLink: `/lightning/r/Account/${acc.Id}/view`
+                    recordLink: `/lightning/r/Account/${acc.Id}/view`,
+                    submissionNotes: '', // Initialize submissionNotes
+                    isSelected: false // Initialize checkbox state
                 }));
                 this.applyFilter(); // Apply the default filter
             })
@@ -96,6 +111,12 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
         this.applyFilter(); // Apply the filter when changed
     }
 
+    handleRowSelection(event) {
+        const selectedRows = event.detail.selectedRows;
+        this.selectedAccounts = selectedRows.map(row => row.Id);
+        console.log("selected"+this.selectedAccounts);
+    }
+
     handleCancel() {
         this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',
@@ -117,16 +138,23 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
                 this.showToast('Success', 'Email sent successfully', 'success');
             })
             .catch(error => {
-                this.showToast('Error', error.body.message, 'error');
+                this.error = error.body.message;
+                this.showToast('Error', this.error, 'error');
             });
     }
 
+    handleCellChange(event) {
+        const draftValues = event.detail.draftValues;
+        // Handle saving draft values if needed
+    }
+
     showToast(title, message, variant) {
-        const event = new ShowToastEvent({
-            title: title,
-            message: message,
-            variant: variant,
-        });
-        this.dispatchEvent(event);
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: title,
+                message: message,
+                variant: variant,
+            })
+        );
     }
 }
