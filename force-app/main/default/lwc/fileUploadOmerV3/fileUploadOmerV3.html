@@ -1,0 +1,28 @@
+<template>
+    <lightning-card title="File Upload">
+        <lightning-file-upload
+            label="Upload File"
+            accept={acceptedFormats}
+            record-id={recordId}
+            onuploadfinished={handleUploadFinished}>
+        </lightning-file-upload>
+        <template if:true={data}>
+            <div if:true={showSpinner}>
+                <lightning-spinner
+                    alternative-text="Loading..." variant="brand">
+                </lightning-spinner>
+            </div>
+            <c-custom-types-global
+                key-field="Id"
+                data={data}
+                columns={columns}
+                onvalueselect={handleSelection}
+                draft-values={draftValues}
+                oncellchange={handleCellChange}
+                onrowaction={handleRowAction}
+                onsave={handleSave}
+                oncancel={handleCancel}>
+            </c-custom-types-global>
+        </template>
+    </lightning-card>
+</template>

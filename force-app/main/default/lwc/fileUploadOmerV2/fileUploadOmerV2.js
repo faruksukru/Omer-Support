@@ -11,6 +11,12 @@ export default class FileUploadOmer extends LightningElement {
     @track picklistValues = [];
     @track error;
     draftValues = [];
+    @track options = [
+        { label: 'Bank Statement', value: 'Bank Statement' },
+        { label: 'Option 2', value: 'option2' },
+        { label: 'Option 3', value: 'option3' },
+    ];
+    @track value ='Bank Statement';
 
     acceptedFormats = '.pdf, .jpg, .png, .docx, .xlsx'; // Adjust as needed
     wiredFilesResult;
@@ -25,7 +31,7 @@ export default class FileUploadOmer extends LightningElement {
                 FileUrl: `/lightning/r/ContentDocument/${file.ContentDocumentId}/view` // URL to view the Content Document record
             }));
             this.error = undefined;
-            } else if (error) {
+        } else if (error) {
             this.error = error;
             this.files = [];
         }
@@ -38,48 +44,46 @@ export default class FileUploadOmer extends LightningElement {
                 label: value,
                 value: value
             }));
+            console.log('PKL'+this.picklistValues[0].label);
         } else if (error) {
             console.error('Error fetching picklist values:', error);
         }
     }
 
     handleUploadFinished() {
-        // Refresh the files list after upload
         this.showToast('Success', 'File uploaded successfully', 'success');
         return refreshApex(this.wiredFilesResult);
     }
 
     handleSave(event) {
-                const updatedFields = event.detail.draftValues.slice().map(draft => {
-                    const fields = Object.assign({}, draft);
-                    return fields;
-                });
-        
-                const promises = updatedFields.map(record => {
-                    console.log("record"+record.Type__c);
-                    console.log("record.Id:  "+record.Id);
-                    return updateFileType({ contentVersionId: record.Id, type: record.Type__c });
-                });
-        
-                Promise.all(promises)
-                    .then(() => {
-                        this.showToast('Success', 'File types updated successfullyyyy', 'success');
-                        this.draftValues = [];
-                        return refreshApex(this.wiredFilesResult);
-                     })
-                    .catch(error => {
-                        this.showToast('Error', error.body.message, 'error');
-                    });
-            }     
-            
-            showToast(title, message, variant) {
-                const event = new ShowToastEvent({
-                    title: title,
-                    message: message,
-                    variant: variant
-                });
-                this.dispatchEvent(event);
-            }
+        const updatedFields = event.detail.draftValues.slice().map(draft => {
+            const fields = Object.assign({}, draft);
+            return fields;
+        });
+
+        const promises = updatedFields.map(record => {
+            return updateFileType({ contentVersionId: record.Id, type: record.Type__c });
+        });
+
+        Promise.all(promises)
+            .then(() => {
+                this.showToast('Success', 'File types updated successfully', 'success');
+                this.draftValues = [];
+                return refreshApex(this.wiredFilesResult);
+            })
+            .catch(error => {
+                this.showToast('Error', error.body.message, 'error');
+            });
+    }
+
+    showToast(title, message, variant) {
+        const event = new ShowToastEvent({
+            title: title,
+            message: message,
+            variant: variant
+        });
+        this.dispatchEvent(event);
+    }
 
     handleRowAction(event) {
         // Handle row action if needed
@@ -99,12 +103,12 @@ export default class FileUploadOmer extends LightningElement {
             {
                 label: 'Type',
                 fieldName: 'Type__c',
-                type: 'picklist',
-                editable: true,
+                type: 'picklistColumn', // Use the custom data type here
+                editable: true, wrapText:true,
                 typeAttributes: {
                     placeholder: 'Choose Type',
-                    options: this.picklistValues,
-                    value: { fieldName: 'Type__c' },
+                    options: this.options,
+                    value: { fieldName: 'Type_c' },
                     context: { fieldName: 'Id' }
                 }
             },
