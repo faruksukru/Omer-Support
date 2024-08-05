@@ -41,6 +41,7 @@ export default class fileUploadOmerV3 extends LightningElement {
     @track draftValues = [];
     lastSavedData = [];
     @track pickListOptions;
+    @track selectedFiles = [];
     wiredFilesResult;
 
  
@@ -66,6 +67,7 @@ export default class fileUploadOmerV3 extends LightningElement {
     filesData(result) {
         this.filesData = result;
         if (result.data) {
+            if(result.data.length !== 0){
             this.dataURL=[];
             this.dataURL = result.data.map(file => ({
                 ...file,
@@ -76,8 +78,10 @@ export default class fileUploadOmerV3 extends LightningElement {
             this.data.forEach(ele => {
                 ele.pickListOptions = this.pickListOptions;
           })
- 
-            this.lastSavedData = JSON.parse(JSON.stringify(this.data));
+        }else{
+         this.data =[];
+        }
+      this.lastSavedData = JSON.parse(JSON.stringify(this.data));
             
         } else if (result.error) {
             this.data = undefined;
@@ -163,6 +167,13 @@ export default class fileUploadOmerV3 extends LightningElement {
         //remove draftValues & revert data changes
         this.data = JSON.parse(JSON.stringify(this.lastSavedData));
         this.draftValues = [];
+    }
+
+   //Add Selected files id
+    handleRowSelection(event) {
+        const selectedRows = event.detail.selectedRows;
+        this.selectedFiles = selectedRows.map(row => row.Id);
+        console.log("selected"+this.selectedFiles);
     }
  
     showToast(title, message, variant, mode) {

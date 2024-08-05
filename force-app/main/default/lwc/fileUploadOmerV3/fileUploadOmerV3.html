@@ -12,6 +12,7 @@
                     alternative-text="Loading..." variant="brand">
                 </lightning-spinner>
             </div>
+            <template if:true={data}>
             <c-custom-types-global
                 key-field="Id"
                 data={data}
@@ -20,9 +21,11 @@
                 draft-values={draftValues}
                 oncellchange={handleCellChange}
                 onrowaction={handleRowAction}
+                onrowselection={handleRowSelection}
                 onsave={handleSave}
                 oncancel={handleCancel}>
             </c-custom-types-global>
+        </template>
         </template>
     </lightning-card>
 </template>
