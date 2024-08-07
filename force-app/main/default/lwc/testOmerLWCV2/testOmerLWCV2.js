@@ -5,6 +5,8 @@ import getFilteredAccounts from '@salesforce/apex/OpportunityControllerV2.getAll
 import sendEmail from '@salesforce/apex/OpportunityControllerV2.sendEmail';
 import updateOpportunityStage from '@salesforce/apex/OpportunityControllerV2.updateOpportunityStage';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { refreshApex } from '@salesforce/apex';
+
 
 const COLUMNS = [
     { label: 'Name', fieldName: 'recordLink', type: 'url', typeAttributes: { label: { fieldName: 'Name' }, target: '_self' } },
@@ -31,10 +33,12 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     @track accounts = [];
     @track filteredAccounts = [];
     @track error;
+    @track wiredOpportunityResult;
     @track draftValues = [];
     @track selectedAccounts = [];
     cardTitle = 'Opportunity'; // Default title
     selectedFilter = 'Qualified'; // Default filter value
+    @track selectedFiles;
 
     columns = COLUMNS;
 
@@ -50,18 +54,31 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     currentPageReference;
 
     @wire(getOpportunityInfo, { opportunityId: '$recordId' })
-    wiredOpportunity({ error, data }) {
-        if (data) {
-            this.opportunity = data;
-            this.cardTitle = data.Name; // Set the card title to the opportunity name
+   // wiredOpportunity({ error, data }) {
+    wiredOpportunity(result) {
+        this.wiredOpportunityResult=result;
+        if (result.data) {
+            this.opportunity = result.data;
+            this.cardTitle = result.data.Name; // Set the card title to the opportunity name
             this.fetchAccounts(); // Fetch all accounts initially
-        } else if (error) {
-            this.error = error.body.message;
+        } else if (result.error) {
+            this.error = result.error.body.message;
         }
     }
 
-    connectedCallback() {
+    
+   /* connectedCallback() {
         this.recordId = this.currentPageReference.state.c__recordId;
+    }*/
+
+    connectedCallback() {
+        // Extract the recordId from URL parameters
+       //if (this.currentPageReference && this.currentPageReference.state) {
+            this.recordId = this.currentPageReference.state.c__recordId;
+      //  }
+
+        // Force refresh when the component is initialized
+        this.refreshComponent();
     }
 
     fetchAccounts() {
@@ -129,10 +146,16 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     }
 
     handleSubmit() {
+        const childComponent = this.template.querySelector('c-file-upload-omer-v3');
+        if (childComponent) {
+            // Get data from the child component
+            this.arrayData = childComponent.getArrayData();
+            console.log('comes from child'+this.arrayData[0]);
+        }
         updateOpportunityStage({ opportunityId: this.recordId, newStage: 'Underwriting' })
             .then(() => {
                 this.showToast('Success', 'Opportunity stage updated to Underwriting', 'success');
-                return sendEmail({ opportunityId: this.recordId });
+                return sendEmail({ opportunityId: this.recordId, contentVersionIds:this.arrayData, selectedAccountIds:this.selectedAccounts });
             })
             .then(() => {
                 this.showToast('Success', 'Email sent successfully', 'success');
@@ -146,6 +169,18 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     handleCellChange(event) {
         const draftValues = event.detail.draftValues;
         // Handle saving draft values if needed
+    }
+
+
+   /* refreshData() {
+       return refreshApex(this.wiredOpportunityResult);
+    }*/
+
+       refreshComponent() {
+        // Check if there is any wired result and refresh it
+       // if (this.wiredOpportunityResult) {
+            refreshApex(this.wiredOpportunityResult);
+      //  }
     }
 
     showToast(title, message, variant) {

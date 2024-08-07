@@ -173,7 +173,14 @@ export default class fileUploadOmerV3 extends LightningElement {
     handleRowSelection(event) {
         const selectedRows = event.detail.selectedRows;
         this.selectedFiles = selectedRows.map(row => row.Id);
+        //return this.selectedFiles;
         console.log("selected"+this.selectedFiles);
+    }
+
+    @api
+    getArrayData() {
+        // You can return the array or use custom events
+        return this.selectedFiles;
     }
  
     showToast(title, message, variant, mode) {
