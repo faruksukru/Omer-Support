@@ -1,5 +1,5 @@
 public with sharing class OpportunityControllerV2 {
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled(cacheable=false)
     public static Opportunity getOpportunityInfo(Id opportunityId) {
         try {
             Opportunity opp = [
@@ -20,31 +20,59 @@ public with sharing class OpportunityControllerV2 {
        system.debug('acountids'+selectedAccountIds);
         Opportunity opp = [SELECT Name, Owner.Email FROM Opportunity WHERE Id = :opportunityId LIMIT 1];
         //Account accs = [SELECT Email FROM Account WHERE Id = :selectedAccountIds];
-        Map<Id, Account> accMap= New Map<Id, Account> ([SELECT Email__c FROM Account WHERE Id = :selectedAccountIds]);
+        Map<Id, Account> accMap= New Map<Id, Account> ([SELECT Email__c, Emails_to_CC__c, Emails_to_BCC__c FROM Account WHERE Id = :selectedAccountIds]);
         List<String> emailAddresses = new List<String>();
+        List<String> ccAddresses = new List<String>();
+        List<String> bccAddresses = new List<String>();
         for (Account acc : accMap.values()) {
             if (acc.Email__c != null) {
                 emailAddresses.add(acc.Email__c);
+            }
+            if (acc.Emails_to_CC__c != null) {
+                ccAddresses.add(acc.Emails_to_CC__c);
+            }
+            if (acc.Emails_to_BCC__c != null) {
+                bccAddresses.add(acc.Emails_to_BCC__c);
             }
         }
         
         if (opp != null) {
             Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
             mail.setToAddresses(emailAddresses );
-            mail.setSubject('Opportunity Update');
-            mail.setPlainTextBody('Opportunity ' + opp.Name + ' has been updated.');
+            mail.setCcAddresses(ccAddresses);
+            mail.setBccAddresses(bccAddresses);
+            mail.setSubject('This is a Test Lenders Submission!');
+            // Create a plain text body with new lines
+            String body = 'Dear Recipient,\n\n';
+            body += 'Please see the attached submission with supporting documentation for review.\n\n';
+            body += 'Submission Notes:\n\n';
+            body += '\nBest regards,\nAdmin 1800BizFund,\nFunding Admin  ';
+            mail.setPlainTextBody(body);
     
             // Prepare email attachments
             List<Messaging.EmailFileAttachment> attachments = new List<Messaging.EmailFileAttachment>();
     
             // Query ContentVersion records
             List<ContentVersion> contentVersions = [SELECT Id, Title, VersionData, FileType FROM ContentVersion WHERE Id IN :contentVersionIds];
+            Map<String, String> fileTypeExtensionMap = new Map<String, String>{
+                'EXCEL_X' => '.xlsx',
+                'WORD_X' => '.docx',
+                'POWER_POINT_X' => '.pptx',
+                'PDF' => '.pdf',
+                'TEXT' => '.txt',
+                'JPEG' => '.jpg',
+                'PNG' => '.png',
+                'GIF' => '.gif',
+                'MP4' => '.mp4',
+                'ZIP' => '.zip',
+                'CSV' => '.csv',
+                'RTF' => '.rtf'
+            };
             
             for (ContentVersion cv : contentVersions) {
                 Messaging.EmailFileAttachment attachment = new Messaging.EmailFileAttachment();
-                attachment.setFileName(cv.Title + '.' + cv.FileType);
+                attachment.setFileName(cv.Title + (fileTypeExtensionMap.containsKey(cv.FileType) ? fileTypeExtensionMap.get(cv.FileType) : ''));
                 attachment.setBody(cv.VersionData);
-                attachment.setContentType('application/' + cv.FileType.toLowerCase());
                 attachments.add(attachment);
             }
             

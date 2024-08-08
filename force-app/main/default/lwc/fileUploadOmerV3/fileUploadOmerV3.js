@@ -17,7 +17,7 @@ const columns =[
                 }
     },
     {
-        label: 'Type',
+        label: 'Type ',
         fieldName: 'Type__c',
         type: 'picklistColumn', // Use the custom data type here
         editable: true, wrapText:true,

@@ -1,4 +1,4 @@
-import { LightningElement, api, wire, track } from 'lwc';
+import { LightningElement, api, track, wire } from 'lwc';
 import { CurrentPageReference, NavigationMixin } from 'lightning/navigation';
 import getOpportunityInfo from '@salesforce/apex/OpportunityControllerV2.getOpportunityInfo';
 import getFilteredAccounts from '@salesforce/apex/OpportunityControllerV2.getAllLenders';
@@ -7,11 +7,10 @@ import updateOpportunityStage from '@salesforce/apex/OpportunityControllerV2.upd
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { refreshApex } from '@salesforce/apex';
 
-
 const COLUMNS = [
     { label: 'Name', fieldName: 'recordLink', type: 'url', typeAttributes: { label: { fieldName: 'Name' }, target: '_self' } },
-    { label: 'Minumum Credit Score',  fieldName: 'Minumum_Credit_Score__c', type: 'number' },
-    { label: 'Minumum Monthly Deposit Amount', fieldName: 'Minumum_Monthly_Deposit_Amount__c', type: 'currency' },
+    { label: 'Minimum Credit Score', fieldName: 'Minumum_Credit_Score__c', type: 'number' },
+    { label: 'Minimum Monthly Deposit Amount', fieldName: 'Minumum_Monthly_Deposit_Amount__c', type: 'currency' },
     { label: 'Restricted Industries', wrapText:true, fieldName: 'Restricted_Industries__c', type: 'text' },
     { label: 'Column 1', fieldName: 'col1', type: 'text' },
     { label: 'Column 2', fieldName: 'col2', type: 'text' },
@@ -33,7 +32,6 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     @track accounts = [];
     @track filteredAccounts = [];
     @track error;
-    @track wiredOpportunityResult;
     @track draftValues = [];
     @track selectedAccounts = [];
     cardTitle = 'Opportunity'; // Default title
@@ -53,32 +51,26 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     @wire(CurrentPageReference)
     currentPageReference;
 
-    @wire(getOpportunityInfo, { opportunityId: '$recordId' })
-   // wiredOpportunity({ error, data }) {
-    wiredOpportunity(result) {
-        this.wiredOpportunityResult=result;
-        if (result.data) {
-            this.opportunity = result.data;
-            this.cardTitle = result.data.Name; // Set the card title to the opportunity name
-            this.fetchAccounts(); // Fetch all accounts initially
-        } else if (result.error) {
-            this.error = result.error.body.message;
-        }
-    }
-
-    
-   /* connectedCallback() {
-        this.recordId = this.currentPageReference.state.c__recordId;
-    }*/
-
     connectedCallback() {
         // Extract the recordId from URL parameters
-       //if (this.currentPageReference && this.currentPageReference.state) {
+        if (this.currentPageReference && this.currentPageReference.state) {
             this.recordId = this.currentPageReference.state.c__recordId;
-      //  }
+        }
 
-        // Force refresh when the component is initialized
-        this.refreshComponent();
+        // Fetch the opportunity info when the component is initialized
+        this.fetchOpportunityInfo();
+    }
+
+    fetchOpportunityInfo() {
+        getOpportunityInfo({ opportunityId: this.recordId })
+            .then(data => {
+                this.opportunity = data;
+                this.cardTitle = data.Name; // Set the card title to the opportunity name
+                this.fetchAccounts(); // Fetch all accounts initially
+            })
+            .catch(error => {
+                this.error = error.body.message;
+            });
     }
 
     fetchAccounts() {
@@ -112,13 +104,7 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
                          this.opportunity.Amount >= account.Minumum_Monthly_Deposit_Amount__c &&
                          !account.Restricted_Industries__c.includes(this.opportunity.Industry));
             });
-        } /*else if (this.selectedFilter === 'API Lenders') {
-            // Assuming 'API Lenders' requires specific filtering; adjust as needed
-            this.filteredAccounts = this.accounts.filter(account => {
-                // Replace with actual API Lenders filtering logic if needed
-                return account.RecordType.DeveloperName === 'API_Lenders';
-            });
-        }*/ else {
+        } else {
             this.filteredAccounts = [];
         }
     }
@@ -131,7 +117,7 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     handleRowSelection(event) {
         const selectedRows = event.detail.selectedRows;
         this.selectedAccounts = selectedRows.map(row => row.Id);
-        console.log("selected"+this.selectedAccounts);
+        console.log("selected" + this.selectedAccounts);
     }
 
     handleCancel() {
@@ -150,12 +136,17 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
         if (childComponent) {
             // Get data from the child component
             this.arrayData = childComponent.getArrayData();
-            console.log('comes from child'+this.arrayData[0]);
+            console.log('comes from child' + this.arrayData[0]);
         }
+        if (this.arrayData.length === 0) {
+            this.showToast('Error', 'Please select at least one File!', 'error');
+        } else if (this.selectedAccounts.length === 0) {
+            this.showToast('Error', 'Please select at least one Lender!', 'error');
+        } else{
         updateOpportunityStage({ opportunityId: this.recordId, newStage: 'Underwriting' })
             .then(() => {
                 this.showToast('Success', 'Opportunity stage updated to Underwriting', 'success');
-                return sendEmail({ opportunityId: this.recordId, contentVersionIds:this.arrayData, selectedAccountIds:this.selectedAccounts });
+                return sendEmail({ opportunityId: this.recordId, contentVersionIds: this.arrayData, selectedAccountIds: this.selectedAccounts });
             })
             .then(() => {
                 this.showToast('Success', 'Email sent successfully', 'success');
@@ -164,6 +155,7 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
                 this.error = error.body.message;
                 this.showToast('Error', this.error, 'error');
             });
+        }
     }
 
     handleCellChange(event) {
@@ -171,16 +163,8 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
         // Handle saving draft values if needed
     }
 
-
-   /* refreshData() {
-       return refreshApex(this.wiredOpportunityResult);
-    }*/
-
-       refreshComponent() {
-        // Check if there is any wired result and refresh it
-       // if (this.wiredOpportunityResult) {
-            refreshApex(this.wiredOpportunityResult);
-      //  }
+    refreshComponent() {
+        this.fetchOpportunityInfo(); // Imperatively fetch the opportunity info again
     }
 
     showToast(title, message, variant) {
