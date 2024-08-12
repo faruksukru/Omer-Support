@@ -4,7 +4,9 @@ import getOpportunityInfo from '@salesforce/apex/OpportunityControllerV2.getOppo
 import getFilteredAccounts from '@salesforce/apex/OpportunityControllerV2.getAllLenders';
 import sendEmail from '@salesforce/apex/OpportunityControllerV2.sendEmail';
 import updateOpportunityStage from '@salesforce/apex/OpportunityControllerV2.updateOpportunityStage';
+import createSubmissions from '@salesforce/apex/OpportunityControllerV2.createSubmissions';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import{IsConsoleNavigation, refreshTab, getFocusedTabInfo} from 'lightning/platformWorkspaceApi'
 import { refreshApex } from '@salesforce/apex';
 
 const COLUMNS = [
@@ -36,7 +38,8 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     @track selectedAccounts = [];
     cardTitle = 'Opportunity'; // Default title
     selectedFilter = 'Qualified'; // Default filter value
-    @track selectedFiles;
+    @track hideCheckboxColumn = false; // Initially hide checkboxes
+    //@track selectedFiles =[];
 
     columns = COLUMNS;
 
@@ -51,6 +54,19 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     @wire(CurrentPageReference)
     currentPageReference;
 
+    @wire(IsConsoleNavigation)
+    isConsoleApp
+
+    async refreshTabHandler(){
+        if(this.isConsoleApp){
+            const {tabId} = await getFocusedTabInfo()
+            await refreshTab(tabId, {
+                includeAllSubtabs:true
+            })
+        }
+    }
+
+
     connectedCallback() {
         // Extract the recordId from URL parameters
         if (this.currentPageReference && this.currentPageReference.state) {
@@ -59,6 +75,7 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
 
         // Fetch the opportunity info when the component is initialized
         this.fetchOpportunityInfo();
+        this.refreshComponent();
     }
 
     fetchOpportunityInfo() {
@@ -92,13 +109,16 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     applyFilter() {
         if (this.selectedFilter === 'All') {
             this.filteredAccounts = this.accounts;
+            this.hideCheckboxColumn = true; // Show checkboxes
         } else if (this.selectedFilter === 'Qualified') {
+            this.hideCheckboxColumn = false;
             this.filteredAccounts = this.accounts.filter(account => {
                 return this.opportunity.Credit_Score__c >= account.Minumum_Credit_Score__c &&
                        this.opportunity.Amount >= account.Minumum_Monthly_Deposit_Amount__c &&
                        !account.Restricted_Industries__c.includes(this.opportunity.Industry);
             });
         } else if (this.selectedFilter === 'Not Qualified') {
+            this.hideCheckboxColumn = true; // Show checkboxes
             this.filteredAccounts = this.accounts.filter(account => {
                 return !(this.opportunity.Credit_Score__c >= account.Minumum_Credit_Score__c &&
                          this.opportunity.Amount >= account.Minumum_Monthly_Deposit_Amount__c &&
@@ -151,6 +171,12 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
             .then(() => {
                 this.showToast('Success', 'Email sent successfully', 'success');
             })
+            .then(() => {
+                return createSubmissions({ opportunityId: this.recordId, selectedAccountIds: this.selectedAccounts });
+            })
+            .then(() => {
+                this.showToast('Success', 'Submissions created successfully', 'success');
+            })
             .catch(error => {
                 this.error = error.body.message;
                 this.showToast('Error', this.error, 'error');
@@ -166,6 +192,8 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     refreshComponent() {
         this.fetchOpportunityInfo(); // Imperatively fetch the opportunity info again
     }
+
+    
 
     showToast(title, message, variant) {
         this.dispatchEvent(

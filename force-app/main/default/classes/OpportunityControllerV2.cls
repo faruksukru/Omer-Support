@@ -1,5 +1,5 @@
 public with sharing class OpportunityControllerV2 {
-    @AuraEnabled(cacheable=false)
+    @AuraEnabled
     public static Opportunity getOpportunityInfo(Id opportunityId) {
         try {
             Opportunity opp = [
@@ -115,4 +115,35 @@ public with sharing class OpportunityControllerV2 {
             throw new AuraHandledException(e.getMessage());
         }
     }
+    @AuraEnabled
+    public static void createSubmissions(Id opportunityId, List<Id> selectedAccountIds) {
+        system.debug('opp: '+opportunityId);
+        system.debug('accs: '+selectedAccountIds);
+        try {
+            // Query accounts to get required details
+            List<Account> accs = new List<Account>([
+                SELECT Id, Email__c
+                FROM Account
+                WHERE Id IN :selectedAccountIds
+            ]);
+
+            List<Submission__c> submissions = new List<Submission__c>();
+
+            for (Account acc : accs) {
+                Submission__c submission = new Submission__c();
+                submission.Opportunity__c = opportunityId;
+                submission.Lender__c = acc.Id;
+                submission.Email__c = acc.Email__c;
+                    //Notes__c = acc.Notes__c
+                submissions.add(submission);
+            }
+
+            if (!submissions.isEmpty()) {
+                insert submissions;
+            }
+        } catch (Exception e) {
+            throw new AuraHandledException('Error creating submissions: ' + e.getMessage());
+        }
+    }
+
 }
