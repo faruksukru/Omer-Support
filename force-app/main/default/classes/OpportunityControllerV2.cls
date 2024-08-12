@@ -146,4 +146,25 @@ public with sharing class OpportunityControllerV2 {
         }
     }
 
+    @AuraEnabled
+public static void updateSubmissionNotes(Map<Id, String> submissionNotesMap) {
+    system.debug(submissionNotesMap.keySet());
+    try {
+        List<Account> accountsToUpdate = new List<Account>();
+        
+        for (Id accountId : submissionNotesMap.keySet()) {
+            Account acc = new Account(Id = accountId);
+            acc.Submission_Notes__c = submissionNotesMap.get(accountId);
+            accountsToUpdate.add(acc);
+        }
+        
+        if (!accountsToUpdate.isEmpty()) {
+            update accountsToUpdate;
+        }
+    } catch (Exception e) {
+        throw new AuraHandledException('Error updating submission notes: ' + e.getMessage());
+    }
+}
+
+
 }

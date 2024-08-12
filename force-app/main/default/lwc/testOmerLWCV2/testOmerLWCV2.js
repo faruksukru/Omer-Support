@@ -5,8 +5,9 @@ import getFilteredAccounts from '@salesforce/apex/OpportunityControllerV2.getAll
 import sendEmail from '@salesforce/apex/OpportunityControllerV2.sendEmail';
 import updateOpportunityStage from '@salesforce/apex/OpportunityControllerV2.updateOpportunityStage';
 import createSubmissions from '@salesforce/apex/OpportunityControllerV2.createSubmissions';
+import updateSubmissionNotes from '@salesforce/apex/OpportunityControllerV2.updateSubmissionNotes';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import{IsConsoleNavigation, refreshTab, getFocusedTabInfo} from 'lightning/platformWorkspaceApi'
+import{IsConsoleNavigation, refreshTab, closeTab, getFocusedTabInfo} from 'lightning/platformWorkspaceApi'
 import { refreshApex } from '@salesforce/apex';
 
 const COLUMNS = [
@@ -57,15 +58,55 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     @wire(IsConsoleNavigation)
     isConsoleApp
 
-    async refreshTabHandler(){
+   /*async refreshTabHandler(){
         if(this.isConsoleApp){
             const {tabId} = await getFocusedTabInfo()
             await refreshTab(tabId, {
                 includeAllSubtabs:true
             })
         }
-    }
+    }*/
 
+       /* refreshTabHandler() {
+            if (this.isConsoleApp) {
+                // Get the focused tab information
+                getFocusedTabInfo()
+                    .then((tabInfo) => {
+                        const { tabId } = tabInfo;
+                        // Refresh the tab using the tabId
+                        return refreshTab(tabId, {
+                            includeAllSubtabs: true
+                        });
+                    })
+                    .then(() => {
+                        // Tab has been refreshed successfully
+                        console.log('Tab refreshed successfully');
+                    })
+                    .catch((error) => {
+                        // Handle any errors that occur during the process
+                        console.error('Error refreshing tab:', error);
+                    });
+            }
+        }*/
+
+        closeTabHandler() {
+            if (this.isConsoleApp) {
+                // Get the focused tab information
+                getFocusedTabInfo()
+                    .then((tabInfo) => {
+                        const { tabId } = tabInfo;
+                        // Refresh the tab using the tabId
+                        return closeTab(tabId, {
+                            includeAllSubtabs: true
+                        });
+                    })
+                   .catch((error) => {
+                        // Handle any errors that occur during the process
+                        console.error('Error refreshing tab:', error);
+                    });
+            }
+        }
+        
 
     connectedCallback() {
         // Extract the recordId from URL parameters
@@ -76,6 +117,7 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
         // Fetch the opportunity info when the component is initialized
         this.fetchOpportunityInfo();
         this.refreshComponent();
+        //this.refreshTabHandler();
     }
 
     fetchOpportunityInfo() {
@@ -141,6 +183,7 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
     }
 
     handleCancel() {
+        this.closeTabHandler() ;
         this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',
             attributes: {
@@ -184,13 +227,37 @@ export default class OpportunityInfo extends NavigationMixin(LightningElement) {
         }
     }
 
-    handleCellChange(event) {
+   /* handleCellChange(event) {
         const draftValues = event.detail.draftValues;
         // Handle saving draft values if needed
-    }
+    }*/
+
+        handleCellChange(event) {
+            const draftValues = event.detail.draftValues;
+            const submissionNotesMap = {};
+        
+            draftValues.forEach(draft => {
+                console.log('merhb'+draft.Id);
+                submissionNotesMap[draft.Id] = draft.submissionNotes;
+            });
+        
+            updateSubmissionNotes({ submissionNotesMap: submissionNotesMap })
+                .then(() => {
+                    this.showToast('Success', 'Submission Notes updated successfully', 'success');
+                    //return refreshApex(this.getFilteredAccounts());
+                    this.draftValues = [];
+                    this.refreshComponent(); 
+                })
+                .catch(error => {
+                    this.error = error.body.message;
+                    this.showToast('Error', this.error, 'error');
+                });
+        }
+        
 
     refreshComponent() {
         this.fetchOpportunityInfo(); // Imperatively fetch the opportunity info again
+        this.fetchAccounts();
     }
 
     
